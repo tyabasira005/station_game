@@ -1,0 +1,843 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>駅名タイピング</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+/* Layout: pixel-art UI. Square 4px-bordered panels with hard offset shadows on a checkered sky ground; one dot-matrix face (DotGothic16) at multiples of 16px. The focal object is a dark LED departure board: one big front row (the train to catch, with its "◯秒発" countdown, a 3-lamp departure signal and the typing line) plus two queued rows. Time is shown three ways: LED seconds, signal lamps, and a blink when departure is imminent. */
+:root{
+  --paper:#cfe8f1;
+  --paper-2:#c3e1ec;
+  --ink:#0f1b2a;
+  --ink-soft:#3f5266;
+  --panel:#ffffff;
+  --blue:#0a4ea3;
+  --blue-hi:#3b7fd6;
+  --blue-deep:#083a7c;
+  --board:#0a0e13;
+  --led:#ffb81c;
+  --led-dim:#8f6812;
+  --led-hot:#fff1c2;
+  --miss:#ff5a4f;
+  --ok:#0a6b3a;
+  --bad:#b3261e;
+  --key:#ffffff;
+  --key-shade:#c3cfd8;
+  --ty-futsu:#61d97b;
+  --ty-kodama:#ffd54a;
+  --ty-hikari:#62b7ff;
+  --ty-nozomi:#ff6b5e;
+  --sig-g:#3ee08a;
+  --sig-y:#ffd23f;
+  --sig-r:#ff5a4f;
+  --sig-off:#2a2f37;
+  --font-ui:"DotGothic16","Hiragino Sans","Yu Gothic",monospace;
+  --font-led:"DotGothic16","Hiragino Sans","Yu Gothic",monospace;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{
+  box-sizing:border-box;
+  background-color:var(--paper);
+  background-image:conic-gradient(var(--paper-2) 25%,var(--paper) 0 50%,var(--paper-2) 0 75%,var(--paper) 0);
+  background-size:16px 16px;
+  color:var(--ink);font-family:var(--font-ui);font-size:16px;font-weight:400;
+  padding-block:8px 12px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.app{
+  --dest:clamp(40px,6.5vh,56px);--yomi:16px;--rom:32px;--tm:32px;--pad:14px;
+  --key-h:50px;--key-font:24px;--kk-h:clamp(38px,6.8vh,50px);
+  min-height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:10px;
+  touch-action:manipulation;
+}
+.app[data-mode="pc"]{--dest:88px;--yomi:24px;--rom:48px;--tm:48px;--pad:28px;--key-h:44px;--key-font:16px;max-width:1040px;gap:14px}
+
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding-bottom:10px;border-bottom:4px solid var(--ink)}
+.brand{display:flex;align-items:center;gap:8px;min-width:0}
+.brand svg{flex:none;display:block}
+.brand .name{font-size:16px;letter-spacing:.06em;white-space:nowrap}
+.mode{
+  flex:none;min-height:40px;padding:4px 10px;border:3px solid var(--ink);border-radius:0;
+  background:var(--panel);color:var(--ink);font:14px var(--font-ui);box-shadow:3px 3px 0 var(--ink);
+}
+.mode:active{transform:translate(3px,3px);box-shadow:none;background:var(--paper)}
+.mode:focus-visible,.btn:focus-visible,.seg:focus-visible{outline:4px solid var(--blue-hi);outline-offset:2px}
+
+.stage{flex:1;display:flex;flex-direction:column;min-height:0}
+.screen{flex:1;display:flex;flex-direction:column;gap:14px;min-width:0}
+.app[data-mode="pc"] .screen{width:100%;max-width:860px;margin-inline:auto}
+
+.eyebrow{margin:0;font-size:16px;letter-spacing:.14em;color:var(--blue)}
+h1{margin:0;font-size:32px;line-height:1.25;font-weight:400;text-wrap:balance;text-shadow:3px 3px 0 #fff}
+.lead{margin:0;font-size:16px;line-height:1.8;color:var(--ink-soft);max-width:34em}
+.best{margin:0;font-size:16px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.best b{color:var(--ink);font-weight:400;background:var(--panel);padding:0 6px;border:2px solid var(--ink)}
+.pc-only{display:none}
+.app[data-mode="pc"] .pc-only{display:block}
+.app[data-mode="pc"] .mobile-only{display:none}
+
+.btn{
+  min-height:64px;border:4px solid var(--ink);border-radius:0;background:var(--blue);color:#fff;
+  font:32px var(--font-ui);letter-spacing:.12em;
+  box-shadow:inset 4px 4px 0 var(--blue-hi),inset -4px -4px 0 var(--blue-deep),4px 4px 0 var(--ink);
+}
+.btn:active{transform:translate(4px,4px);box-shadow:inset 4px 4px 0 var(--blue-hi),inset -4px -4px 0 var(--blue-deep)}
+.app[data-mode="pc"] .btn{max-width:320px}
+.kbd-hint{margin:0;font-size:16px;color:var(--ink-soft)}
+
+/* Start: platform, line picker */
+.plat{position:relative;height:36px;flex:none}
+.plat svg{position:absolute;left:0;bottom:8px;display:block}
+.rail{position:absolute;left:0;right:0;bottom:0;height:8px;border-top:4px solid var(--ink);background:repeating-linear-gradient(90deg,var(--ink) 0 4px,transparent 4px 12px)}
+.picker{margin:0;padding:0;border:0;min-width:0}
+.picker legend{padding:0;margin-bottom:6px;font-size:16px;color:var(--ink-soft)}
+.segs{display:grid;grid-template-columns:1fr 1.25fr .75fr;gap:8px}
+.seg{
+  min-width:0;display:grid;gap:2px;justify-items:center;padding:6px 4px 8px;border:3px solid var(--ink);border-radius:0;
+  background:var(--panel);color:var(--ink);font:16px var(--font-ui);box-shadow:3px 3px 0 var(--ink);
+}
+.seg small{font-size:12px;color:var(--ink-soft)}
+.seg[aria-pressed="true"]{background:var(--blue);color:#fff;box-shadow:inset 3px 3px 0 var(--blue-hi),inset -3px -3px 0 var(--blue-deep),3px 3px 0 var(--ink)}
+.seg[aria-pressed="true"] small{color:#d6e6fa}
+.seg:active{transform:translate(3px,3px);box-shadow:none}
+
+/* HUD */
+.hud{display:grid;grid-template-columns:1.3fr 1fr 1.1fr;gap:10px}
+.cell{border:3px solid var(--ink);background:var(--panel);box-shadow:3px 3px 0 var(--ink);padding:2px 8px 4px;min-width:0}
+.lab{display:block;font-size:16px;color:var(--ink-soft);white-space:nowrap}
+.val{display:block;font-size:32px;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mult{font-size:12px;color:var(--blue);margin-left:4px}
+.lives{display:flex;gap:6px;align-items:center;height:38px}
+.lives i{display:block;width:18px;height:18px;border:3px solid var(--ink);background:#fff;box-sizing:border-box}
+.lives i.x{background:var(--miss)}
+
+/* Departure board */
+.board{
+  display:grid;gap:8px;padding:var(--pad);border:4px solid var(--ink);border-radius:0;
+  font-family:var(--font-led);color:var(--led);
+  background-color:var(--board);
+  background-image:radial-gradient(rgba(255,184,28,.1) 1px,transparent 1.6px);background-size:6px 6px;
+  box-shadow:inset 0 0 0 4px #1c2530,4px 4px 0 var(--ink);min-width:0;
+}
+.brow{display:grid;gap:4px;min-width:0}
+.meta{display:flex;align-items:center;gap:10px}
+.ty{display:inline-block;padding:0 6px;font-size:16px;line-height:22px;color:var(--board);background:var(--ty-futsu);white-space:nowrap;flex:none}
+.ty[data-t="こだま"]{background:var(--ty-kodama)}
+.ty[data-t="ひかり"]{background:var(--ty-hikari)}
+.ty[data-t="のぞみ"]{background:var(--ty-nozomi)}
+.sig{display:inline-flex;gap:3px;padding:3px;background:#000;flex:none}
+.sig i{display:block;width:12px;height:12px;background:var(--sig-off)}
+.sig[data-s="r"] .r{background:var(--sig-r)}
+.sig[data-s="y"] .y{background:var(--sig-y)}
+.sig[data-s="g"] .g{background:var(--sig-g)}
+.tm{margin-left:auto;font-size:var(--tm);line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
+.dest{display:flex;align-items:baseline;gap:8px;font-size:var(--dest);line-height:1.1;text-shadow:0 0 14px rgba(255,184,28,.45);overflow-wrap:anywhere}
+.dest small{font-size:16px;color:var(--led-dim);text-shadow:none;white-space:nowrap}
+.yomi{font-size:var(--yomi);letter-spacing:.12em}
+.romaji{font-size:var(--rom);letter-spacing:.04em;margin-top:2px;overflow-wrap:anywhere;min-height:1.3em}
+.romaji .done{color:var(--led-dim)}
+.romaji .cur{color:var(--led-hot);text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:4px}
+.romaji .cur.part{opacity:.7}
+.romaji .rest{color:var(--led)}
+.sub{display:flex;align-items:center;gap:10px;min-width:0;font-size:16px;border-top:2px dotted var(--led-dim);padding-top:8px}
+.sub .dst{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub .tm{font-size:16px}
+.app[data-mode="pc"] .sub{font-size:24px}
+.app[data-mode="pc"] .sub .tm{font-size:24px}
+.app[data-mode="pc"] .ty{font-size:16px}
+.board.urgent .front .tm{animation:blink .5s steps(1) infinite}
+.board.miss{animation:shake .28s steps(4);box-shadow:inset 0 0 0 4px var(--miss),4px 4px 0 var(--ink)}
+.board.arrive{animation:arrive .32s steps(4)}
+@keyframes blink{50%{opacity:.2}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@keyframes arrive{0%{filter:brightness(2)}100%{filter:brightness(1)}}
+.hint{margin:0;min-height:1.4em;font-size:16px;color:var(--ink-soft);text-align:center}
+.hint.ok{color:var(--ok)}
+.hint.bad{color:var(--bad)}
+
+/* Result */
+.rank{margin:0;font-size:64px;line-height:1.1;color:var(--blue);letter-spacing:.02em;text-shadow:4px 4px 0 var(--ink)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0}
+.stat{border:3px solid var(--ink);background:var(--panel);box-shadow:3px 3px 0 var(--ink);padding:4px 10px 8px;min-width:0}
+.stat dt{font-size:16px;color:var(--ink-soft)}
+.stat dd{margin:0;font-size:32px;font-variant-numeric:tabular-nums}
+.stat dd small{font-size:16px;margin-left:4px}
+
+/* Romaji keyboard (PC guide) */
+.kb{display:grid;gap:8px;margin-top:auto;padding-top:4px}
+.app[data-mode="pc"] .kb{width:100%;max-width:640px;margin-inline:auto;pointer-events:none}
+.row{display:flex;gap:6px;justify-content:center}
+.row.r2{padding-inline:4.5%}
+.row.r3{padding-inline:13%}
+.key{
+  flex:1 1 0;min-width:0;height:var(--key-h);padding:0;border:3px solid var(--ink);border-radius:0;
+  background:var(--key);color:var(--ink);font:var(--key-font) var(--font-ui);text-transform:uppercase;
+  box-shadow:inset -3px -3px 0 var(--key-shade),0 3px 0 var(--ink);
+}
+.key.next{background:var(--blue);color:#fff;box-shadow:inset 3px 3px 0 var(--blue-hi),inset -3px -3px 0 var(--blue-deep),0 3px 0 var(--ink)}
+.key.down{transform:translateY(3px);box-shadow:inset -3px -3px 0 var(--key-shade)}
+.key.next.down{box-shadow:inset 3px 3px 0 var(--blue-hi),inset -3px -3px 0 var(--blue-deep)}
+.key.bad{background:#ffb3ad;box-shadow:inset -3px -3px 0 #e0837b,0 3px 0 var(--ink)}
+
+/* Kana flick pad (mobile mode): 12-key layout with a right-hand column */
+.app[data-mode="mobile"] .kb,.app[data-mode="pc"] .kana{display:none}
+.app[data-mode="mobile"] .yomi{display:none}
+.app:not([data-state="play"]) .kb,.app:not([data-state="play"]) .kana{display:none}
+.kana{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:var(--kk-h);gap:6px;margin-top:auto;padding-top:4px;touch-action:none}
+.kkey{position:relative;height:auto;font-size:24px;text-transform:none;touch-action:none}
+.kkey.sm{font-size:16px}
+.kkey.fn{background:#dde7ee}
+.kkey .kc{pointer-events:none}
+.kkey.next::after{content:"";position:absolute;display:none;width:12px;height:12px;background:#fff}
+.kkey.next[data-dir="1"]::after{display:block;left:5px;top:50%;margin-top:-6px;clip-path:polygon(100% 0,0 50%,100% 100%)}
+.kkey.next[data-dir="2"]::after{display:block;top:4px;left:50%;margin-left:-6px;clip-path:polygon(50% 0,0 100%,100% 100%)}
+.kkey.next[data-dir="3"]::after{display:block;right:5px;top:50%;margin-top:-6px;clip-path:polygon(0 0,100% 50%,0 100%)}
+.kkey.next[data-dir="4"]::after{display:block;bottom:4px;left:50%;margin-left:-6px;clip-path:polygon(0 0,100% 0,50% 100%)}
+.kkey[data-n]::before{content:"×" attr(data-n);position:absolute;right:5px;top:3px;font-size:12px;color:#fff}
+.pop{position:absolute;inset:0;z-index:6;pointer-events:none}
+.pop .pc{position:absolute;display:grid;place-items:center;border:3px solid var(--ink);background:var(--panel);box-shadow:3px 3px 0 var(--ink);font:28px var(--font-ui);color:var(--ink);box-sizing:border-box}
+.pop .pc.sel{background:var(--blue);color:#fff}
+
+@media (prefers-reduced-motion:reduce){
+  .board.miss,.board.arrive,.board.urgent .front .tm{animation:none}
+}
+</style>
+
+<div class="app" id="app" data-mode="mobile" data-state="idle">
+  <header class="top">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect width="8" height="8" fill="#0f1b2a"/><rect x="1" y="1" width="6" height="6" fill="#0a4ea3"/><rect x="1" y="3" width="6" height="2" fill="#fff"/><rect x="3" y="2" width="2" height="4" fill="#0a4ea3"/><rect x="3" y="3" width="2" height="2" fill="#fff"/></svg>
+      <span class="name">駅名タイピング</span>
+    </div>
+    <button type="button" class="mode" id="modeBtn">PC版に切り替え</button>
+  </header>
+
+  <main class="stage">
+    <section class="screen" id="sStart">
+      <div class="plat" aria-hidden="true">
+        <svg width="96" height="48" viewBox="0 0 16 8" shape-rendering="crispEdges"><rect x="0" y="1" width="13" height="5" fill="#0f1b2a"/><rect x="13" y="2" width="2" height="4" fill="#0f1b2a"/><rect x="1" y="2" width="11" height="3" fill="#fff"/><rect x="1" y="4" width="11" height="1" fill="#0a4ea3"/><rect x="2" y="2" width="1" height="1" fill="#3b7fd6"/><rect x="4" y="2" width="1" height="1" fill="#3b7fd6"/><rect x="6" y="2" width="1" height="1" fill="#3b7fd6"/><rect x="8" y="2" width="1" height="1" fill="#3b7fd6"/><rect x="13" y="3" width="1" height="2" fill="#fff"/><rect x="2" y="6" width="2" height="2" fill="#0f1b2a"/><rect x="9" y="6" width="2" height="2" fill="#0f1b2a"/></svg>
+        <div class="rail"></div>
+      </div>
+      <p class="eyebrow"><span class="mobile-only">かなフリック入力</span><span class="pc-only">ローマ字入力</span></p>
+      <h1>発車標の行き先を打って乗車する</h1>
+      <p class="lead">行き先を「◯秒発」までに入力すると乗車できます。乗り遅れが3回たまると運転終了です。最初のキーを押すと発車標が動き出します。</p>
+      <fieldset class="picker">
+        <legend>路線</legend>
+        <div class="segs" role="group" aria-label="路線">
+          <button type="button" class="seg" data-line="jr" aria-pressed="false"><span>東海道線</span><small>豊橋〜熱海</small></button>
+          <button type="button" class="seg" data-line="sk" aria-pressed="false"><span>東海道新幹線</span><small>東京〜新大阪</small></button>
+          <button type="button" class="seg" data-line="both" aria-pressed="true"><span>両方</span><small>すべて</small></button>
+        </div>
+      </fieldset>
+      <p class="best" id="bestLine"></p>
+      <button type="button" class="btn" id="startBtn">出発する</button>
+      <p class="kbd-hint pc-only">Enter キーでも開始できます。Esc キーで中断します。</p>
+      <div class="board" aria-label="発車標の表示例">
+        <div class="brow front">
+          <div class="meta"><span class="ty" data-t="普通">普通</span><span class="sig" data-s="g"><i class="r"></i><i class="y"></i><i class="g"></i></span><span class="tm">8秒発</span></div>
+          <div class="dest"><span>袋井</span><small>行き</small></div>
+          <div class="romaji mobile-only"><span class="done">ふく</span><span class="cur">ろ</span><span class="rest">い</span></div>
+          <div class="romaji pc-only"><span class="done">fuku</span><span class="cur">r</span><span class="rest">oi</span></div>
+        </div>
+        <div class="sub"><span class="ty" data-t="普通">普通</span><span class="dst">掛川</span><span class="tm">15秒発</span></div>
+        <div class="sub"><span class="ty" data-t="のぞみ">のぞみ</span><span class="dst">名古屋</span><span class="tm">22秒発</span></div>
+      </div>
+      <p class="lead mobile-only">キーを上下左右にフリックすると同じ行の別のかなが出ます。「小゛゜」は押すたびに直前の文字が「か→が」「は→ば→ぱ」「つ→っ→づ」のように切り替わります。「削除」で入力中の文字を消せます。</p>
+    </section>
+
+    <section class="screen" id="sPlay" hidden>
+      <div class="hud">
+        <div class="cell"><span class="lab">スコア</span><span class="val" id="scoreEl">0</span></div>
+        <div class="cell"><span class="lab">コンボ</span><span class="val"><span id="comboEl">0</span><span class="mult" id="multEl"></span></span></div>
+        <div class="cell"><span class="lab">乗り遅れ</span><span class="lives" id="lives" aria-label="乗り遅れ回数"><i></i><i></i><i></i></span></div>
+      </div>
+      <div class="board" id="board">
+        <div class="brow front" id="rowF">
+          <div class="meta"><span class="ty" id="fTy">普通</span><span class="sig" id="sig" data-s="g"><i class="r"></i><i class="y"></i><i class="g"></i></span><span class="tm" id="fTm">0秒発</span></div>
+          <div class="dest"><span id="dest"></span><small>行き</small></div>
+          <div class="yomi" id="yomi"></div>
+          <div class="romaji" id="romaji"></div>
+        </div>
+        <div class="sub" id="row2"><span class="ty"></span><span class="dst"></span><span class="tm"></span></div>
+        <div class="sub" id="row3"><span class="ty"></span><span class="dst"></span><span class="tm"></span></div>
+      </div>
+      <p class="hint" id="hint">&nbsp;</p>
+    </section>
+
+    <section class="screen" id="sResult" hidden aria-live="polite">
+      <p class="eyebrow">運転終了</p>
+      <p class="rank" id="rRank"></p>
+      <p class="lead" id="rSub"></p>
+      <dl class="stats">
+        <div class="stat"><dt>乗車した駅</dt><dd><span id="rWords">0</span><small>駅</small></dd></div>
+        <div class="stat"><dt>スコア</dt><dd id="rScore">0</dd></div>
+        <div class="stat"><dt>正確さ</dt><dd><span id="rAcc">0</span><small>%</small></dd></div>
+        <div class="stat"><dt>最大コンボ</dt><dd id="rCombo">0</dd></div>
+      </dl>
+      <p class="best" id="rBest"></p>
+      <button type="button" class="btn" id="againBtn">もう一度</button>
+      <p class="kbd-hint pc-only">Enter キーでもう一度始められます。</p>
+    </section>
+  </main>
+
+  <div class="kb" id="kb" aria-label="画面キーボード"></div>
+  <div class="kana" id="kana" aria-label="かなキーパッド"></div>
+</div>
+
+<script>
+/*ENGINE*/
+var JR=[
+['豊橋','とよはし'],['二川','ふたがわ'],['新所原','しんじょはら'],['鷲津','わしづ'],['新居町','あらいまち'],
+['弁天島','べんてんじま'],['舞阪','まいさか'],['高塚','たかつか'],['浜松','はままつ'],['天竜川','てんりゅうがわ'],
+['豊田町','とよだちょう'],['磐田','いわた'],['御厨','みくりや'],['袋井','ふくろい'],['愛野','あいの'],
+['掛川','かけがわ'],['菊川','きくがわ'],['金谷','かなや'],['島田','しまだ'],['六合','ろくごう'],
+['藤枝','ふじえだ'],['西焼津','にしやいづ'],['焼津','やいづ'],['用宗','もちむね'],['安倍川','あべかわ'],
+['静岡','しずおか'],['東静岡','ひがししずおか'],['草薙','くさなぎ'],['清水','しみず'],['興津','おきつ'],
+['由比','ゆい'],['蒲原','かんばら'],['新蒲原','しんかんばら'],['富士川','ふじかわ'],['富士','ふじ'],
+['吉原','よしわら'],['東田子の浦','ひがしたごのうら'],['原','はら'],['片浜','かたはま'],['沼津','ぬまづ'],
+['三島','みしま'],['函南','かんなみ'],['熱海','あたみ']
+];
+var SK=[
+['東京','とうきょう'],['品川','しながわ'],['新横浜','しんよこはま'],['小田原','おだわら'],['熱海','あたみ'],
+['三島','みしま'],['新富士','しんふじ'],['静岡','しずおか'],['掛川','かけがわ'],['浜松','はままつ'],
+['三河安城','みかわあんじょう'],['豊橋','とよはし'],['名古屋','なごや'],['岐阜羽島','ぎふはしま'],['米原','まいばら'],
+['京都','きょうと'],['新大阪','しんおおさか']
+];
+var WORDS=JR.map(function(w){return [w[0],w[1],'jr']}).concat(SK.map(function(w){return [w[0],w[1],'sk']}));
+var BASE={
+'あ':['a'],'い':['i'],'う':['u'],'え':['e'],'お':['o'],
+'か':['ka'],'き':['ki'],'く':['ku'],'け':['ke'],'こ':['ko'],
+'さ':['sa'],'し':['shi','si'],'す':['su'],'せ':['se'],'そ':['so'],
+'た':['ta'],'ち':['chi','ti'],'つ':['tsu','tu'],'て':['te'],'と':['to'],
+'な':['na'],'に':['ni'],'ぬ':['nu'],'ね':['ne'],'の':['no'],
+'は':['ha'],'ひ':['hi'],'ふ':['fu','hu'],'へ':['he'],'ほ':['ho'],
+'ま':['ma'],'み':['mi'],'む':['mu'],'め':['me'],'も':['mo'],
+'や':['ya'],'ゆ':['yu'],'よ':['yo'],
+'ら':['ra'],'り':['ri'],'る':['ru'],'れ':['re'],'ろ':['ro'],
+'わ':['wa'],'を':['wo'],
+'が':['ga'],'ぎ':['gi'],'ぐ':['gu'],'げ':['ge'],'ご':['go'],
+'ざ':['za'],'じ':['ji','zi'],'ず':['zu'],'ぜ':['ze'],'ぞ':['zo'],
+'だ':['da'],'ぢ':['di'],'づ':['du'],'で':['de'],'ど':['do'],
+'ば':['ba'],'び':['bi'],'ぶ':['bu'],'べ':['be'],'ぼ':['bo'],
+'ぱ':['pa'],'ぴ':['pi'],'ぷ':['pu'],'ぺ':['pe'],'ぽ':['po']
+};
+var COMBO={
+'きゃ':['kya'],'きゅ':['kyu'],'きょ':['kyo'],'ぎゃ':['gya'],'ぎゅ':['gyu'],'ぎょ':['gyo'],
+'しゃ':['sha','sya'],'しゅ':['shu','syu'],'しょ':['sho','syo'],
+'じゃ':['ja','zya','jya'],'じゅ':['ju','zyu','jyu'],'じょ':['jo','zyo','jyo'],
+'ちゃ':['cha','tya','cya'],'ちゅ':['chu','tyu','cyu'],'ちょ':['cho','tyo','cyo'],
+'にゃ':['nya'],'にゅ':['nyu'],'にょ':['nyo'],'ひゃ':['hya'],'ひゅ':['hyu'],'ひょ':['hyo'],
+'みゃ':['mya'],'みゅ':['myu'],'みょ':['myo'],'りゃ':['rya'],'りゅ':['ryu'],'りょ':['ryo'],
+'びゃ':['bya'],'びゅ':['byu'],'びょ':['byo'],'ぴゃ':['pya'],'ぴゅ':['pyu'],'ぴょ':['pyo']
+};
+function tokenize(y){
+  var u=[];
+  for(var i=0;i<y.length;i++){
+    var ch=y.charAt(i),nx=y.charAt(i+1);
+    if(ch==='っ'){u.push({t:'ltsu'});continue}
+    if(ch==='ん'){u.push({t:'n'});continue}
+    if(nx&&'ゃゅょ'.indexOf(nx)>=0&&COMBO[ch+nx]){u.push({t:'k',c:COMBO[ch+nx]});i++;continue}
+    u.push({t:'k',c:BASE[ch]});
+  }
+  return u;
+}
+function cands(units,i){
+  var u=units[i],nx=units[i+1],out=[];
+  if(u.t==='ltsu'){
+    if(nx&&nx.t==='k'){
+      nx.c.forEach(function(c){var f=c.charAt(0);if('aiueon'.indexOf(f)<0&&out.indexOf(f)<0)out.push(f)});
+    }
+    out.push('xtu','ltu');
+    return out;
+  }
+  if(u.t==='n'){
+    out=['nn','xn'];
+    if(nx&&nx.t==='k'&&nx.c.every(function(c){return 'aiueoy'.indexOf(c.charAt(0))<0}))out.unshift('n');
+    return out;
+  }
+  return u.c;
+}
+function makeWord(k,y){return {kanji:k,yomi:y,units:tokenize(y),sts:[{ui:0,buf:'',done:[]}]}}
+function stepSt(w,s,k){
+  var out=[],cs=cands(w.units,s.ui),nb=s.buf+k;
+  if(cs.some(function(c){return c.indexOf(nb)===0})){
+    var complete=cs.indexOf(nb)>=0;
+    var longer=cs.some(function(c){return c.length>nb.length&&c.indexOf(nb)===0});
+    if(longer||!complete)out.push({ui:s.ui,buf:nb,done:s.done});
+    if(complete)out.push({ui:s.ui+1,buf:'',done:s.done.concat([nb])});
+  }
+  if(s.buf&&cs.indexOf(s.buf)>=0){
+    var adv={ui:s.ui+1,buf:'',done:s.done.concat([s.buf])};
+    if(adv.ui<w.units.length)out=out.concat(stepSt(w,adv,k));
+  }
+  return out;
+}
+function press(w,k){
+  var next=[],seen={};
+  w.sts.forEach(function(s){
+    stepSt(w,s,k).forEach(function(t){
+      var id=t.ui+'|'+t.buf+'|'+t.done.join(',');
+      if(!seen[id]){seen[id]=1;next.push(t)}
+    });
+  });
+  if(!next.length)return 'miss';
+  w.sts=next;
+  for(var i=0;i<next.length;i++)if(next[i].ui>=w.units.length)return 'done';
+  return 'ok';
+}
+function viewOf(w,s){
+  var typed=s.done.join('')+s.buf,rest='';
+  if(s.ui<w.units.length){
+    var cs=cands(w.units,s.ui),cur='';
+    if(s.buf){for(var i=0;i<cs.length;i++){if(cs[i].indexOf(s.buf)===0){cur=cs[i];break}}}
+    else cur=cs[0];
+    rest=cur.slice(s.buf.length);
+    for(var j=s.ui+1;j<w.units.length;j++)rest+=cands(w.units,j)[0];
+  }
+  return {typed:typed,rest:rest};
+}
+function view(w){
+  var best=null;
+  w.sts.forEach(function(s){
+    var v=viewOf(w,s);
+    if(!best||v.rest.length<best.rest.length)best=v;
+  });
+  return best;
+}
+var FLICK={
+'あ':['あ','い','う','え','お'],'か':['か','き','く','け','こ'],'さ':['さ','し','す','せ','そ'],
+'た':['た','ち','つ','て','と'],'な':['な','に','ぬ','ね','の'],'は':['は','ひ','ふ','へ','ほ'],
+'ま':['ま','み','む','め','も'],'や':['や',null,'ゆ',null,'よ'],'ら':['ら','り','る','れ','ろ'],
+'わ':['わ','を','ん','ー',null],'p':['、','。','？','！',null]
+};
+var REV={};
+Object.keys(FLICK).forEach(function(k){FLICK[k].forEach(function(c,d){if(c)REV[c]={key:k,dir:d}})});
+var CYC={
+'あ':['あ','ぁ'],'い':['い','ぃ'],'う':['う','ぅ','ゔ'],'え':['え','ぇ'],'お':['お','ぉ'],
+'か':['か','が'],'き':['き','ぎ'],'く':['く','ぐ'],'け':['け','げ'],'こ':['こ','ご'],
+'さ':['さ','ざ'],'し':['し','じ'],'す':['す','ず'],'せ':['せ','ぜ'],'そ':['そ','ぞ'],
+'た':['た','だ'],'ち':['ち','ぢ'],'つ':['つ','っ','づ'],'て':['て','で'],'と':['と','ど'],
+'は':['は','ば','ぱ'],'ひ':['ひ','び','ぴ'],'ふ':['ふ','ぶ','ぷ'],'へ':['へ','べ','ぺ'],'ほ':['ほ','ぼ','ぽ'],
+'や':['や','ゃ'],'ゆ':['ゆ','ゅ'],'よ':['よ','ょ'],'わ':['わ','ゎ']
+};
+var VB={};
+Object.keys(CYC).forEach(function(b){CYC[b].forEach(function(c,i){if(i>0)VB[c]={base:b,idx:i}})});
+function makeKana(k,y){
+  var chars=[];
+  for(var i=0;i<y.length;i++){var ch=y.charAt(i),v=VB[ch]||{base:ch,idx:0};chars.push({ch:ch,base:v.base,idx:v.idx})}
+  return {kanji:k,yomi:y,chars:chars,ci:0,comp:null};
+}
+function kadvance(w){w.ci++;w.comp=null;return w.ci>=w.chars.length?'done':'ok'}
+function kpress(w,s){
+  var c=w.chars[w.ci];
+  if(!c)return 'miss';
+  if(s==='del'){if(w.comp===null)return 'noop';w.comp=null;return 'undo'}
+  if(s==='cyc'){
+    var cyc=CYC[c.base]||[c.base];
+    if(w.comp===null||cyc.length<2)return 'miss';
+    w.comp=(w.comp+1)%cyc.length;
+    return w.comp===c.idx?kadvance(w):'ok';
+  }
+  if(w.comp!==null||s!==c.base)return 'miss';
+  w.comp=0;
+  return c.idx===0?kadvance(w):'ok';
+}
+function kview(w){
+  var done='',cur='',rest='',i,c=w.chars[w.ci],nx=null;
+  for(i=0;i<w.ci;i++)done+=w.chars[i].ch;
+  if(c){
+    cur=c.ch;
+    for(i=w.ci+1;i<w.chars.length;i++)rest+=w.chars[i].ch;
+    nx=w.comp===null?{t:'flick',ch:c.base,left:c.idx}:{t:'cyc',left:c.idx-w.comp,shown:(CYC[c.base]||[c.base])[w.comp]};
+  }
+  return {done:done,cur:cur,rest:rest,next:nx,comp:w.comp};
+}
+function strokeCount(w){return w.chars?w.chars.reduce(function(n,c){return n+1+c.idx},0):view(w).rest.length}
+/*END*/
+
+(function(){
+'use strict';
+var LIVES=3;
+var $=function(id){return document.getElementById(id)};
+var app=$('app'),modeBtn=$('modeBtn'),kb=$('kb'),pad=$('kana'),board=$('board');
+var sStart=$('sStart'),sPlay=$('sPlay'),sResult=$('sResult');
+var state='idle',started=false,t0=0,timer=null,hiddenAt=0;
+var W=null,queue=[],line='both',frontDep=0,CARRY=2000;
+var combo=0,maxCombo=0,score=0,correct=0,wrong=0,boarded=0,late=0,recent=[];
+var evMsg='',evCls='',evUntil=0;
+var keyEls={},padEls={},nextEl=null,bests={};
+try{bests=JSON.parse(localStorage.getItem('ekitype.bests')||'{}')||{}}catch(e){bests={}}
+function isPc(){return app.dataset.mode==='pc'}
+function clock(){return started?performance.now()-t0:0}
+function bestKey(){return (isPc()?'pc':'mobile')+'.'+line}
+function getBest(){return bests[bestKey()]||0}
+
+/* ローマ字キーボード（PC版のガイド） */
+[['q','w','e','r','t','y','u','i','o','p'],['a','s','d','f','g','h','j','k','l'],['z','x','c','v','b','n','m']].forEach(function(r,i){
+  var row=document.createElement('div');row.className='row r'+(i+1);
+  r.forEach(function(k){
+    var b=document.createElement('button');
+    b.type='button';b.className='key';b.textContent=k;b.dataset.k=k;b.setAttribute('aria-label',k);
+    keyEls[k]=b;row.appendChild(b);
+  });
+  kb.appendChild(row);
+});
+
+/* かなテンキー（スマホ版）: 12キー配列、右に削除・空白・改行 */
+var KEYS=[
+  ['あ','あ','flick',1,1],['か','か','flick',1,2],['さ','さ','flick',1,3],['del','削除','fn',1,4],
+  ['た','た','flick',2,1],['な','な','flick',2,2],['は','は','flick',2,3],['sp','空白','fn',2,4],
+  ['ま','ま','flick',3,1],['や','や','flick',3,2],['ら','ら','flick',3,3],['ret','改行','fn',3,4,2],
+  ['cyc','小゛゜','fn',4,1],['わ','わ','flick',4,2],['p','、。?!','flick',4,3]
+];
+var FN={cyc:'cyc',del:'del',sp:null,ret:null};
+var KEYLAB={};
+KEYS.forEach(function(d){
+  KEYLAB[d[0]]=d[1];
+  var b=document.createElement('button');
+  b.type='button';
+  b.className='key kkey'+(d[2]==='fn'?' fn':'')+(d[1].length>2?' sm':'');
+  b.dataset.key=d[0];
+  b.setAttribute('aria-label',d[1]);
+  b.style.gridRow=d[3]+(d[5]?' / span '+d[5]:'');
+  b.style.gridColumn=String(d[4]);
+  var s=document.createElement('span');s.className='kc';s.textContent=d[1];
+  b.appendChild(s);
+  padEls[d[0]]=b;pad.appendChild(b);
+});
+
+var DIRS=[[0,0],[-1,0],[0,-1],[1,0],[0,1]];
+var DT=['タップ','を←にフリック','を↑にフリック','を→にフリック','を↓にフリック'];
+var flicks={};
+function dirOf(dx,dy){
+  if(Math.sqrt(dx*dx+dy*dy)<16)return 0;
+  if(Math.abs(dx)>Math.abs(dy))return dx<0?1:3;
+  return dy<0?2:4;
+}
+function buildPop(btn,cands){
+  var pr=pad.getBoundingClientRect(),br=btn.getBoundingClientRect();
+  var w=br.width,h=br.height,x=br.left-pr.left,y=br.top-pr.top;
+  x=Math.max(w,Math.min(x,pr.width-2*w));
+  var pop=document.createElement('div');pop.className='pop';
+  var cells=[];
+  cands.forEach(function(c,d){
+    if(!c)return;
+    var el=document.createElement('div');el.className='pc';el.textContent=c;
+    el.style.width=w+'px';el.style.height=h+'px';
+    el.style.left=(x+DIRS[d][0]*w)+'px';el.style.top=(y+DIRS[d][1]*h)+'px';
+    pop.appendChild(el);cells[d]=el;
+  });
+  pad.appendChild(pop);
+  return {pop:pop,cells:cells};
+}
+pad.addEventListener('pointerdown',function(e){
+  var b=e.target.closest?e.target.closest('.kkey'):null;
+  if(!b)return;
+  e.preventDefault();
+  try{b.setPointerCapture(e.pointerId)}catch(err){}
+  b.classList.add('down');
+  var key=b.dataset.key;
+  if(FN.hasOwnProperty(key)){flicks[e.pointerId]={btn:b};if(FN[key])input(FN[key],b);return}
+  var cands=FLICK[key],pp=buildPop(b,cands);
+  pp.cells[0].classList.add('sel');
+  flicks[e.pointerId]={btn:b,x0:e.clientX,y0:e.clientY,dir:0,pop:pp,cands:cands};
+});
+pad.addEventListener('pointermove',function(e){
+  var f=flicks[e.pointerId];
+  if(!f||!f.pop)return;
+  var d=dirOf(e.clientX-f.x0,e.clientY-f.y0);
+  if(d===f.dir)return;
+  if(f.pop.cells[f.dir])f.pop.cells[f.dir].classList.remove('sel');
+  f.dir=d;
+  if(f.pop.cells[d])f.pop.cells[d].classList.add('sel');
+});
+function endFlick(e,commit){
+  var f=flicks[e.pointerId];
+  if(!f)return;
+  delete flicks[e.pointerId];
+  f.btn.classList.remove('down');
+  if(f.pop){
+    f.pop.pop.parentNode.removeChild(f.pop.pop);
+    if(commit){var ch=f.cands[f.dir];if(ch)input(ch,f.btn)}
+  }
+}
+pad.addEventListener('pointerup',function(e){endFlick(e,true)});
+pad.addEventListener('pointercancel',function(e){endFlick(e,false)});
+document.addEventListener('contextmenu',function(e){e.preventDefault()});
+
+/* モードと路線 */
+function setMode(m){
+  app.dataset.mode=m;
+  modeBtn.textContent=m==='pc'?'スマホ版に切り替え':'PC版に切り替え';
+  try{localStorage.setItem('ekitype.mode',m)}catch(e){}
+  bestLine();
+}
+modeBtn.addEventListener('click',function(){
+  setMode(isPc()?'mobile':'pc');
+  modeBtn.blur();
+  if(state==='play')quit();
+});
+try{if(localStorage.getItem('ekitype.mode')==='pc')setMode('pc')}catch(e){}
+function setLine(l){
+  line=l;
+  Array.prototype.forEach.call(document.querySelectorAll('.seg'),function(b){b.setAttribute('aria-pressed',b.dataset.line===l?'true':'false')});
+  try{localStorage.setItem('ekitype.line',l)}catch(e){}
+  bestLine();
+}
+Array.prototype.forEach.call(document.querySelectorAll('.seg'),function(b){
+  b.addEventListener('click',function(){setLine(b.dataset.line)});
+});
+try{var sl=localStorage.getItem('ekitype.line');if(sl==='jr'||sl==='sk'||sl==='both')setLine(sl)}catch(e){}
+
+/* 表示 */
+function show(name){
+  sStart.hidden=name!=='start';sPlay.hidden=name!=='play';sResult.hidden=name!=='result';
+  app.dataset.state=name==='play'?'play':'idle';
+}
+function fmt(n){return n.toLocaleString('ja-JP')}
+function bestLine(){var b=getBest();$('bestLine').innerHTML=b?'この路線の自己ベスト <b>'+fmt(b)+'</b> 点':'この路線はまだ記録がありません'}
+function clearNext(){
+  if(nextEl){nextEl.classList.remove('next');nextEl.removeAttribute('data-dir');nextEl.removeAttribute('data-n')}
+  nextEl=null;
+}
+function setNextRoman(ch){
+  clearNext();
+  if(ch&&keyEls[ch]){nextEl=keyEls[ch];nextEl.classList.add('next')}
+}
+function setNextKana(nx){
+  clearNext();
+  if(!nx)return;
+  var el,dir=0;
+  if(nx.t==='cyc'){el=padEls.cyc;if(nx.left>1)el.setAttribute('data-n',nx.left)}
+  else{var r=REV[nx.ch];el=padEls[r.key];dir=r.dir}
+  if(!el)return;
+  nextEl=el;el.classList.add('next');el.setAttribute('data-dir',dir);
+}
+function mult(){return 1+Math.min(Math.floor(combo/10),4)*0.25}
+function updateHud(){
+  $('scoreEl').textContent=fmt(score);
+  $('comboEl').textContent=combo;
+  $('multEl').textContent=mult()>1?'×'+mult().toFixed(2):'';
+  var ls=$('lives').children;
+  for(var i=0;i<ls.length;i++)ls[i].className=i<late?'x':'';
+}
+function flash(el,cls,ms){el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls);setTimeout(function(){el.classList.remove(cls)},ms)}
+function guide(nx){
+  if(nx.t==='cyc')return '「小゛゜」をあと'+nx.left+'回（いま「'+nx.shown+'」）';
+  var r=REV[nx.ch],t=r.dir===0?'「'+nx.ch+'」をタップ':nx.ch+': 「'+KEYLAB[r.key]+'」'+DT[r.dir];
+  return nx.left>0?t+' → 小゛゜×'+nx.left:t;
+}
+function event(msg,cls){evMsg=msg;evCls=cls;evUntil=performance.now()+1300}
+function updateHint(){
+  var h=$('hint'),txt='',cls='';
+  if(evMsg&&performance.now()<evUntil){txt=evMsg;cls=evCls}
+  else if(started&&queue.length&&frontDep-clock()<=3000){txt='まもなく発車します';cls='bad'}
+  else if(!isPc()){var nx=W?kview(W).next:null;txt=nx?guide(nx):''}
+  else if(!started)txt='最初のキーで発車標が動き出します';
+  h.textContent=txt||' ';
+  h.className='hint'+(cls?' '+cls:'');
+}
+function render(){
+  var h='';
+  if(isPc()){
+    var v=view(W);
+    if(v.typed)h+='<span class="done">'+v.typed+'</span>';
+    if(v.rest)h+='<span class="cur">'+v.rest.charAt(0)+'</span><span class="rest">'+v.rest.slice(1)+'</span>';
+    setNextRoman(v.rest?v.rest.charAt(0):null);
+  }else{
+    var k=kview(W);
+    if(k.done)h+='<span class="done">'+k.done+'</span>';
+    if(k.cur)h+='<span class="cur'+(k.comp!==null?' part':'')+'">'+k.cur+'</span>';
+    if(k.rest)h+='<span class="rest">'+k.rest+'</span>';
+    setNextKana(k.next);
+  }
+  $('romaji').innerHTML=h;
+  updateHint();
+}
+
+/* 発車標 */
+var NOZOMI={'東京':1,'品川':1,'新横浜':1,'名古屋':1,'京都':1,'新大阪':1};
+var HIKARI={'小田原':1,'熱海':1,'三島':1,'静岡':1,'浜松':1,'豊橋':1,'岐阜羽島':1,'米原':1};
+function typeOf(w){
+  if(w[2]==='jr')return '普通';
+  var o=['こだま'];
+  if(NOZOMI[w[0]]||HIKARI[w[0]])o.push('ひかり');
+  if(NOZOMI[w[0]])o.push('のぞみ');
+  return o[Math.floor(Math.random()*o.length)];
+}
+function pickWord(){
+  var all=WORDS.filter(function(w){return line==='both'||w[2]===line});
+  var maxLen=4+boarded;
+  var pool=all.filter(function(w){return w[1].length<=maxLen&&recent.indexOf(w[0])<0});
+  if(!pool.length)pool=all.filter(function(w){return recent.indexOf(w[0])<0});
+  if(!pool.length)pool=all;
+  var w=pool[Math.floor(Math.random()*pool.length)];
+  recent.push(w[0]);if(recent.length>8)recent.shift();
+  return w;
+}
+function makeEntry(){
+  var w=pickWord();
+  var eng=isPc()?makeWord(w[0],w[1]):makeKana(w[0],w[1]);
+  var f=Math.max(0.4,1-0.025*boarded);
+  var a=Math.max(3,Math.round((2.2+strokeCount(eng)*(isPc()?0.55:1.0))*f*2)/2);
+  return {k:w[0],y:w[1],ty:typeOf(w),w:eng,a:a};
+}
+function fill(){while(queue.length<3)queue.push(makeEntry())}
+function setTy(el,t){el.textContent=t;el.setAttribute('data-t',t)}
+function renderBoard(){
+  var f=queue[0];
+  W=f.w;
+  setTy($('fTy'),f.ty);
+  $('dest').textContent=f.k;
+  $('yomi').textContent=f.y;
+  [1,2].forEach(function(i){
+    var row=$('row'+(i+1)),e=queue[i];
+    setTy(row.children[0],e.ty);
+    row.children[1].textContent=e.k;
+  });
+  updateTimes();
+  render();
+}
+function updateTimes(){
+  var rem=Math.max(0,frontDep-clock());
+  $('fTm').textContent=Math.ceil(rem/1000)+'秒発';
+  $('sig').setAttribute('data-s',rem<=2500?'r':rem<=5000?'y':'g');
+  board.classList.toggle('urgent',started&&rem<=3000);
+  var t=rem;
+  [1,2].forEach(function(i){
+    t+=queue[i].a*1000;
+    $('row'+(i+1)).children[2].textContent=Math.ceil(t/1000)+'秒発';
+  });
+}
+
+/* 進行 */
+function startGame(){
+  clearInterval(timer);
+  state='play';started=false;
+  combo=maxCombo=score=correct=wrong=boarded=late=0;recent=[];queue=[];
+  evMsg='';
+  show('play');
+  fill();
+  frontDep=queue[0].a*1000;
+  updateHud();
+  renderBoard();
+  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+}
+function quit(){
+  clearInterval(timer);state='idle';clearNext();
+  board.classList.remove('urgent');
+  bestLine();show('start');
+}
+function rank(n){
+  var f=isPc()?1:0.8;
+  if(n>=30*f)return ['のぞみ','終点まで一気に走り抜けました。'];
+  if(n>=20*f)return ['ひかり','主要駅を確実に結ぶ速さです。'];
+  if(n>=12*f)return ['特急','安定したペースで走れました。'];
+  if(n>=6*f)return ['快速','あと少しで特急です。'];
+  return ['各駅停車','ゆっくり確実に進みました。'];
+}
+function finish(){
+  clearInterval(timer);state='over';clearNext();
+  board.classList.remove('urgent');
+  var tries=correct+wrong,acc=tries?Math.round(correct/tries*100):0;
+  var secs=Math.round(clock()/1000),r=rank(boarded);
+  var prev=getBest(),isBest=score>prev;
+  if(isBest){bests[bestKey()]=score;try{localStorage.setItem('ekitype.bests',JSON.stringify(bests))}catch(e){}}
+  $('rRank').textContent=r[0];
+  $('rSub').textContent=r[1]+' 運転時間は '+secs+' 秒でした。';
+  $('rWords').textContent=boarded;
+  $('rScore').textContent=fmt(score);
+  $('rAcc').textContent=acc;
+  $('rCombo').textContent=maxCombo;
+  $('rBest').innerHTML=isBest&&score>0?'<b>この路線の自己ベストを更新しました</b>':'この路線の自己ベスト <b>'+fmt(getBest())+'</b> 点';
+  show('result');
+}
+function departMiss(){
+  late++;combo=0;
+  var old=frontDep;
+  queue.shift();
+  fill();
+  frontDep=old+queue[0].a*1000;
+  event('発車しました 乗り遅れ','bad');
+  flash(board,'miss',280);
+  try{if(navigator.vibrate)navigator.vibrate(40)}catch(e){}
+  updateHud();
+  if(late>=LIVES){finish();return}
+  renderBoard();
+}
+function tick(){
+  var now=clock();
+  while(state==='play'&&frontDep<=now)departMiss();
+  if(state!=='play')return;
+  updateTimes();
+  updateHint();
+}
+function input(k,btn){
+  if(state!=='play')return;
+  var pc=isPc();
+  if(pc!==(k.length===1&&/[a-z]/.test(k)))return;
+  if(!started){started=true;t0=performance.now();timer=setInterval(tick,50)}
+  if(frontDep<=clock()){tick();return}
+  var r=pc?press(W,k):kpress(W,k);
+  var el=pc?keyEls[k]:btn;
+  if(r==='undo'||r==='noop'){render();return}
+  if(r==='miss'){
+    wrong++;combo=0;
+    if(el)flash(el,'bad',140);
+    flash(board,'miss',260);
+    try{if(navigator.vibrate)navigator.vibrate(15)}catch(e){}
+    updateHud();
+    return;
+  }
+  correct++;combo++;if(combo>maxCombo)maxCombo=combo;
+  score+=Math.round(10*mult());
+  if(pc&&el)flash(el,'down',100);
+  if(r==='done'){
+    var left=Math.max(0,frontDep-clock()),bonus=50+Math.ceil(left/1000)*10;
+    score+=bonus;boarded++;
+    queue.shift();
+    fill();
+    frontDep=clock()+queue[0].a*1000+Math.min(left,CARRY);
+    event('乗車 +'+bonus,'ok');
+    flash(board,'arrive',320);
+    updateHud();
+    renderBoard();
+  }else{
+    updateHud();
+    render();
+  }
+}
+
+$('startBtn').addEventListener('click',startGame);
+$('againBtn').addEventListener('click',startGame);
+document.addEventListener('keydown',function(e){
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  if(state==='play'){
+    if(e.key==='Escape'){quit();return}
+    if(!isPc())return;
+    var k=null;
+    if(e.key&&e.key.length===1&&/[a-zA-Z]/.test(e.key))k=e.key.toLowerCase();
+    else if(e.code&&/^Key[A-Z]$/.test(e.code))k=e.code.charAt(3).toLowerCase();
+    if(k){e.preventDefault();if(!e.repeat)input(k)}
+    return;
+  }
+  var tag=document.activeElement?document.activeElement.tagName:'';
+  if((e.key==='Enter'||e.key===' ')&&tag!=='BUTTON'){e.preventDefault();startGame()}
+});
+document.addEventListener('visibilitychange',function(){
+  if(state!=='play'||!started)return;
+  if(document.hidden){hiddenAt=performance.now();clearInterval(timer)}
+  else if(hiddenAt){t0+=performance.now()-hiddenAt;hiddenAt=0;timer=setInterval(tick,50)}
+});
+
+show('start');
+bestLine();
+})();
+</script>
+
+</body></html>

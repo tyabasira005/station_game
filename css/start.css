@@ -1,0 +1,16 @@
+/* スタート画面: 路線選択 */
+/* Start: platform, line picker */
+.plat{position:relative;height:36px;flex:none}
+.plat svg{position:absolute;left:0;bottom:8px;display:block}
+.rail{position:absolute;left:0;right:0;bottom:0;height:8px;border-top:4px solid var(--ink);background:repeating-linear-gradient(90deg,var(--ink) 0 4px,transparent 4px 12px)}
+.picker{margin:0;padding:0;border:0;min-width:0}
+.picker legend{padding:0;margin-bottom:6px;font-size:16px;color:var(--ink-soft)}
+.segs{display:grid;grid-template-columns:1fr 1.25fr .75fr;gap:8px}
+.seg{
+  min-width:0;display:grid;gap:2px;justify-items:center;padding:6px 4px 8px;border:3px solid var(--ink);border-radius:0;
+  background:var(--panel);color:var(--ink);font:16px var(--font-ui);box-shadow:3px 3px 0 var(--ink);
+}
+.seg small{font-size:12px;color:var(--ink-soft)}
+.seg[aria-pressed="true"]{background:var(--blue);color:#fff;box-shadow:inset 3px 3px 0 var(--blue-hi),inset -3px -3px 0 var(--blue-deep),3px 3px 0 var(--ink)}
+.seg[aria-pressed="true"] small{color:#d6e6fa}
+.seg:active{transform:translate(3px,3px);box-shadow:none}

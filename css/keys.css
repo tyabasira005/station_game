@@ -1,0 +1,32 @@
+/* Romaji keyboard (PC guide) */
+.kb{display:grid;gap:8px;margin-top:auto;padding-top:4px}
+html[data-mode="pc"] .kb{width:100%;max-width:640px;margin-inline:auto;pointer-events:none}
+.row{display:flex;gap:6px;justify-content:center}
+.row.r2{padding-inline:4.5%}
+.row.r3{padding-inline:13%}
+.key{
+  flex:1 1 0;min-width:0;height:var(--key-h);padding:0;border:3px solid var(--ink);border-radius:0;
+  background:var(--key);color:var(--ink);font:var(--key-font) var(--font-ui);text-transform:uppercase;
+  box-shadow:inset -3px -3px 0 var(--key-shade),0 3px 0 var(--ink);
+}
+.key.next{background:var(--blue);color:#fff;box-shadow:inset 3px 3px 0 var(--blue-hi),inset -3px -3px 0 var(--blue-deep),0 3px 0 var(--ink)}
+.key.down{transform:translateY(3px);box-shadow:inset -3px -3px 0 var(--key-shade)}
+.key.next.down{box-shadow:inset 3px 3px 0 var(--blue-hi),inset -3px -3px 0 var(--blue-deep)}
+.key.bad{background:#ffb3ad;box-shadow:inset -3px -3px 0 #e0837b,0 3px 0 var(--ink)}
+
+/* Kana flick pad (mobile mode): 12-key layout with a right-hand column */
+html[data-mode="mobile"] .kb,html[data-mode="pc"] .kana{display:none}
+.kana{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:var(--kk-h);gap:6px;margin-top:auto;padding-top:4px;touch-action:none}
+.kkey{position:relative;height:auto;font-size:24px;text-transform:none;touch-action:none}
+.kkey.sm{font-size:16px}
+.kkey.fn{background:#dde7ee}
+.kkey .kc{pointer-events:none}
+.kkey.next::after{content:"";position:absolute;display:none;width:12px;height:12px;background:#fff}
+.kkey.next[data-dir="1"]::after{display:block;left:5px;top:50%;margin-top:-6px;clip-path:polygon(100% 0,0 50%,100% 100%)}
+.kkey.next[data-dir="2"]::after{display:block;top:4px;left:50%;margin-left:-6px;clip-path:polygon(50% 0,0 100%,100% 100%)}
+.kkey.next[data-dir="3"]::after{display:block;right:5px;top:50%;margin-top:-6px;clip-path:polygon(0 0,100% 50%,0 100%)}
+.kkey.next[data-dir="4"]::after{display:block;bottom:4px;left:50%;margin-left:-6px;clip-path:polygon(0 0,100% 0,50% 100%)}
+.kkey[data-n]::before{content:"×" attr(data-n);position:absolute;right:5px;top:3px;font-size:12px;color:#fff}
+.pop{position:absolute;inset:0;z-index:6;pointer-events:none}
+.pop .pc{position:absolute;display:grid;place-items:center;border:3px solid var(--ink);background:var(--panel);box-shadow:3px 3px 0 var(--ink);font:28px var(--font-ui);color:var(--ink);box-sizing:border-box}
+.pop .pc.sel{background:var(--blue);color:#fff}

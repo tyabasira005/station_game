@@ -1,0 +1,95 @@
+/* 単体のHTMLとして開いたときの下地（画面端の安全領域、hidden属性） */
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+
+/* Layout: pixel-art UI. Square 4px-bordered panels with hard offset shadows on a checkered sky ground; one dot-matrix face (DotGothic16) at multiples of 16px. The focal object is a dark LED departure board: one big front row (the train to catch, with its "◯秒発" countdown, a 3-lamp departure signal and the typing line) plus two queued rows. Time is shown three ways: LED seconds, signal lamps, and a blink when departure is imminent. */
+:root{
+  --paper:#cfe8f1;
+  --paper-2:#c3e1ec;
+  --ink:#0f1b2a;
+  --ink-soft:#3f5266;
+  --panel:#ffffff;
+  --blue:#0a4ea3;
+  --blue-hi:#3b7fd6;
+  --blue-deep:#083a7c;
+  --board:#0a0e13;
+  --led:#ffb81c;
+  --led-dim:#8f6812;
+  --led-hot:#fff1c2;
+  --miss:#ff5a4f;
+  --ok:#0a6b3a;
+  --bad:#b3261e;
+  --key:#ffffff;
+  --key-shade:#c3cfd8;
+  --ty-futsu:#61d97b;
+  --ty-kodama:#ffd54a;
+  --ty-hikari:#62b7ff;
+  --ty-nozomi:#ff6b5e;
+  --sig-g:#3ee08a;
+  --sig-y:#ffd23f;
+  --sig-r:#ff5a4f;
+  --sig-off:#2a2f37;
+  --font-ui:"DotGothic16","Hiragino Sans","Yu Gothic",monospace;
+  --font-led:"DotGothic16","Hiragino Sans","Yu Gothic",monospace;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{
+  box-sizing:border-box;
+  background-color:var(--paper);
+  background-image:conic-gradient(var(--paper-2) 25%,var(--paper) 0 50%,var(--paper-2) 0 75%,var(--paper) 0);
+  background-size:16px 16px;
+  color:var(--ink);font-family:var(--font-ui);font-size:16px;font-weight:400;
+  padding-block:8px 12px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.app{
+  --dest:clamp(40px,6.5vh,56px);--yomi:16px;--rom:32px;--tm:32px;--pad:14px;
+  --key-h:50px;--key-font:24px;--kk-h:clamp(38px,6.8vh,50px);
+  min-height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:10px;
+  touch-action:manipulation;
+}
+html[data-mode="pc"] .app{--dest:88px;--yomi:24px;--rom:48px;--tm:48px;--pad:28px;--key-h:44px;--key-font:16px;max-width:1040px;gap:14px}
+
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding-bottom:10px;border-bottom:4px solid var(--ink)}
+.brand{display:flex;align-items:center;gap:8px;min-width:0}
+.brand svg{flex:none;display:block}
+.brand .name{font-size:16px;letter-spacing:.06em;white-space:nowrap}
+.mode{
+  flex:none;min-height:40px;padding:4px 10px;border:3px solid var(--ink);border-radius:0;
+  background:var(--panel);color:var(--ink);font:14px var(--font-ui);box-shadow:3px 3px 0 var(--ink);
+}
+.mode:active{transform:translate(3px,3px);box-shadow:none;background:var(--paper)}
+.mode:focus-visible,.btn:focus-visible,.seg:focus-visible{outline:4px solid var(--blue-hi);outline-offset:2px}
+
+.stage{flex:1;display:flex;flex-direction:column;min-height:0}
+.screen{flex:1;display:flex;flex-direction:column;gap:14px;min-width:0}
+html[data-mode="pc"] .screen{width:100%;max-width:860px;margin-inline:auto}
+
+.eyebrow{margin:0;font-size:16px;letter-spacing:.14em;color:var(--blue)}
+h1{margin:0;font-size:32px;line-height:1.25;font-weight:400;text-wrap:balance;text-shadow:3px 3px 0 #fff}
+.lead{margin:0;font-size:16px;line-height:1.8;color:var(--ink-soft);max-width:34em}
+.best{margin:0;font-size:16px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.best b{color:var(--ink);font-weight:400;background:var(--panel);padding:0 6px;border:2px solid var(--ink)}
+.pc-only{display:none}
+html[data-mode="pc"] .pc-only{display:block}
+html[data-mode="pc"] .mobile-only{display:none}
+
+.btn{
+  min-height:64px;border:4px solid var(--ink);border-radius:0;background:var(--blue);color:#fff;
+  font:32px var(--font-ui);letter-spacing:.12em;
+  box-shadow:inset 4px 4px 0 var(--blue-hi),inset -4px -4px 0 var(--blue-deep),4px 4px 0 var(--ink);
+}
+.btn:active{transform:translate(4px,4px);box-shadow:inset 4px 4px 0 var(--blue-hi),inset -4px -4px 0 var(--blue-deep)}
+html[data-mode="pc"] .btn{max-width:320px}
+.kbd-hint{margin:0;font-size:16px;color:var(--ink-soft)}
+/* ボタンは button と a の両方に使う（画面遷移は a） */
+.btn{display:flex;align-items:center;justify-content:center;box-sizing:border-box;text-decoration:none}
+.btn-alt{min-height:48px;font-size:20px;background:var(--panel);color:var(--ink);box-shadow:inset -4px -4px 0 var(--key-shade),4px 4px 0 var(--ink)}
+.btn-alt:active{background:var(--paper);box-shadow:inset -4px -4px 0 var(--key-shade)}

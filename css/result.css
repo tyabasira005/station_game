@@ -1,0 +1,8 @@
+/* 結果画面 */
+/* Result */
+.rank{margin:0;font-size:64px;line-height:1.1;color:var(--blue);letter-spacing:.02em;text-shadow:4px 4px 0 var(--ink)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0}
+.stat{border:3px solid var(--ink);background:var(--panel);box-shadow:3px 3px 0 var(--ink);padding:4px 10px 8px;min-width:0}
+.stat dt{font-size:16px;color:var(--ink-soft)}
+.stat dd{margin:0;font-size:32px;font-variant-numeric:tabular-nums}
+.stat dd small{font-size:16px;margin-left:4px}

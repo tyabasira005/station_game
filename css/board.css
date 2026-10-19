@@ -1,0 +1,35 @@
+/* 発車標（スタートの見本とプレイ画面で共通） */
+.board{
+  display:grid;gap:8px;padding:var(--pad);border:4px solid var(--ink);border-radius:0;
+  font-family:var(--font-led);color:var(--led);
+  background-color:var(--board);
+  background-image:radial-gradient(rgba(255,184,28,.1) 1px,transparent 1.6px);background-size:6px 6px;
+  box-shadow:inset 0 0 0 4px #1c2530,4px 4px 0 var(--ink);min-width:0;
+}
+.brow{display:grid;gap:4px;min-width:0}
+.meta{display:flex;align-items:center;gap:10px}
+.ty{display:inline-block;padding:0 6px;font-size:16px;line-height:22px;color:var(--board);background:var(--ty-futsu);white-space:nowrap;flex:none}
+.ty[data-t="こだま"]{background:var(--ty-kodama)}
+.ty[data-t="ひかり"]{background:var(--ty-hikari)}
+.ty[data-t="のぞみ"]{background:var(--ty-nozomi)}
+.sig{display:inline-flex;gap:3px;padding:3px;background:#000;flex:none}
+.sig i{display:block;width:12px;height:12px;background:var(--sig-off)}
+.sig[data-s="r"] .r{background:var(--sig-r)}
+.sig[data-s="y"] .y{background:var(--sig-y)}
+.sig[data-s="g"] .g{background:var(--sig-g)}
+.tm{margin-left:auto;font-size:var(--tm);line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
+.dest{display:flex;align-items:baseline;gap:8px;font-size:var(--dest);line-height:1.1;text-shadow:0 0 14px rgba(255,184,28,.45);overflow-wrap:anywhere}
+.dest small{font-size:16px;color:var(--led-dim);text-shadow:none;white-space:nowrap}
+.yomi{font-size:var(--yomi);letter-spacing:.12em}
+.romaji{font-size:var(--rom);letter-spacing:.04em;margin-top:2px;overflow-wrap:anywhere;min-height:1.3em}
+.romaji .done{color:var(--led-dim)}
+.romaji .cur{color:var(--led-hot);text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:4px}
+.romaji .cur.part{opacity:.7}
+.romaji .rest{color:var(--led)}
+.sub{display:flex;align-items:center;gap:10px;min-width:0;font-size:16px;border-top:2px dotted var(--led-dim);padding-top:8px}
+.sub .dst{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub .tm{font-size:16px}
+html[data-mode="pc"] .sub{font-size:24px}
+html[data-mode="pc"] .sub .tm{font-size:24px}
+html[data-mode="pc"] .ty{font-size:16px}
+html[data-mode="mobile"] .yomi{display:none}

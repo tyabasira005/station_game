@@ -1,0 +1,24 @@
+/* プレイ画面: 表示ボード、警告アニメーション、ヒント */
+/* HUD */
+.hud{display:grid;grid-template-columns:1.3fr 1fr 1.1fr;gap:10px}
+.cell{border:3px solid var(--ink);background:var(--panel);box-shadow:3px 3px 0 var(--ink);padding:2px 8px 4px;min-width:0}
+.lab{display:block;font-size:16px;color:var(--ink-soft);white-space:nowrap}
+.val{display:block;font-size:32px;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mult{font-size:12px;color:var(--blue);margin-left:4px}
+.lives{display:flex;gap:6px;align-items:center;height:38px}
+.lives i{display:block;width:18px;height:18px;border:3px solid var(--ink);background:#fff;box-sizing:border-box}
+.lives i.x{background:var(--miss)}
+
+.board.urgent .front .tm{animation:blink .5s steps(1) infinite}
+.board.miss{animation:shake .28s steps(4);box-shadow:inset 0 0 0 4px var(--miss),4px 4px 0 var(--ink)}
+.board.arrive{animation:arrive .32s steps(4)}
+@keyframes blink{50%{opacity:.2}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@keyframes arrive{0%{filter:brightness(2)}100%{filter:brightness(1)}}
+.hint{margin:0;min-height:1.4em;font-size:16px;color:var(--ink-soft);text-align:center}
+.hint.ok{color:var(--ok)}
+.hint.bad{color:var(--bad)}
+
+@media (prefers-reduced-motion:reduce){
+  .board.miss,.board.arrive,.board.urgent .front .tm{animation:none}
+}

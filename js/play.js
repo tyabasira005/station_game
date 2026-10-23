@@ -15,6 +15,10 @@ var W=null,queue=[],line=E.getLine(),frontDep=0;
 var combo=0,maxCombo=0,score=0,correct=0,wrong=0,boarded=0,late=0,recent=[];
 var evMsg='',evCls='',evUntil=0;
 
+/* タイムアタック: URL の ?c=コースID で指定。なければ通常のスコアアタック */
+var course=(function(){var m=/[?&]c=([a-z]+)/.exec(location.search);return m?findCourse(m[1]):null})();
+var TA=!!course,list=[],total=0,nextIdx=0;
+
 /* 最初のキーを押すまで時計は止まっている */
 function clock(){return started?performance.now()-t0:0}
 function strokeCount(w){return w.chars?w.chars.reduce(function(n,c){return n+1+c.idx},0):view(w).rest.length}
@@ -22,6 +26,13 @@ function mult(){return 1+Math.min(Math.floor(combo/10),4)*0.25}
 
 /* ---------- 表示 ---------- */
 function updateHud(){
+  if(TA){
+    $('scoreEl').textContent=E.fmtTime(clock());
+    $('comboEl').textContent=boarded+'/'+total;
+    $('multEl').textContent='';
+    $('missEl').textContent=wrong;
+    return;
+  }
   $('scoreEl').textContent=fmt(score);
   $('comboEl').textContent=combo;
   $('multEl').textContent=mult()>1?'×'+mult().toFixed(2):'';
@@ -32,9 +43,9 @@ function event(msg,cls){evMsg=msg;evCls=cls;evUntil=performance.now()+1300}
 function updateHint(){
   var h=$('hint'),txt='',cls='';
   if(evMsg&&performance.now()<evUntil){txt=evMsg;cls=evCls}
-  else if(started&&queue.length&&frontDep-clock()<=3000){txt='まもなく発車します';cls='bad'}
+  else if(!TA&&started&&queue.length&&frontDep-clock()<=3000){txt='まもなく発車します';cls='bad'}
   else if(!isPc()){var nx=W?kview(W).next:null;txt=nx?Keys.guide(nx):''}
-  else if(!started)txt='最初のキーで発車標が動き出します';
+  else if(!started)txt=TA?'最初のキーでタイム計測が始まります':'最初のキーで発車標が動き出します';
   h.textContent=txt||' ';
   h.className='hint'+(cls?' '+cls:'');
 }
@@ -81,7 +92,15 @@ function makeEntry(){
   var a=Math.max(3,Math.round((2.2+strokeCount(eng)*(isPc()?0.55:1.0))*f*2)/2);
   return {k:w[0],y:w[1],ty:typeOf(w),w:eng,a:a};
 }
-function fill(){while(queue.length<3)queue.push(makeEntry())}
+/* タイムアタック: コースの駅を順番に並べる */
+function taEntry(i){
+  var w=list[i];
+  return {k:w[0],y:w[1],ty:course.ty,w:isPc()?makeWord(w[0],w[1]):makeKana(w[0],w[1]),a:0,idx:i};
+}
+function fill(){
+  if(TA){while(queue.length<3&&nextIdx<total)queue.push(taEntry(nextIdx++));return}
+  while(queue.length<3)queue.push(makeEntry());
+}
 function setTy(el,t){el.textContent=t;el.setAttribute('data-t',t)}
 function renderBoard(){
   var f=queue[0];
@@ -91,6 +110,8 @@ function renderBoard(){
   $('yomi').textContent=f.y;
   [1,2].forEach(function(i){
     var row=$('row'+(i+1)),e=queue[i];
+    row.hidden=!e;                          /* 終点が近いと次の列車の行はなくなる */
+    if(!e)return;
     setTy(row.children[0],e.ty);
     row.children[1].textContent=e.k;
   });
@@ -98,6 +119,13 @@ function renderBoard(){
   render();
 }
 function updateTimes(){
+  if(TA){                                   /* 発車時刻の代わりに「何駅目か」を出す */
+    $('fTm').textContent=(queue[0].idx+1)+'/'+total;
+    $('sig').setAttribute('data-s','g');
+    board.classList.remove('urgent');
+    [1,2].forEach(function(i){if(queue[i])$('row'+(i+1)).children[2].textContent=(queue[i].idx+1)+'/'+total});
+    return;
+  }
   var rem=Math.max(0,frontDep-clock());
   $('fTm').textContent=Math.ceil(rem/1000)+'秒発';
   $('sig').setAttribute('data-s',rem<=2500?'r':rem<=5000?'y':'g');
@@ -115,8 +143,9 @@ function startGame(){
   state='play';started=false;
   combo=maxCombo=score=correct=wrong=boarded=late=0;recent=[];queue=[];
   evMsg='';
+  if(TA)setupTA();
   fill();
-  frontDep=queue[0].a*1000;
+  frontDep=TA?Infinity:queue[0].a*1000;     /* タイムアタックに発車時刻はない */
   updateHud();
   renderBoard();
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
@@ -140,6 +169,33 @@ function finish(){
   });
   location.replace('result.html');
 }
+/* タイムアタックの表示切り替え（HUD のラベルなど） */
+function setupTA(){
+  list=course.stops();total=list.length;nextIdx=0;
+  document.title='駅名タイピング タイムアタック';
+  $('courseEl').hidden=false;
+  $('courseEl').textContent=course.label+' '+course.route;
+  $('hud').classList.add('ta');
+  $('lab1').textContent='タイム';
+  $('lab2').textContent='乗車';
+  $('lab3').textContent='ミス';
+  $('lives').hidden=true;
+  $('missEl').hidden=false;
+}
+/* 完走: 最後の駅を打ち終えた時刻をタイムにして結果画面へ */
+function finishTA(ms){
+  clearInterval(timer);state='over';Keys.clearNext();
+  var tries=correct+wrong;
+  var isBest=E.saveBestTime(course.id,ms);
+  E.setResult({
+    game:'ta',course:course.id,label:course.label,route:course.route,
+    boarded:total,ms:ms,wrong:wrong,
+    acc:tries?Math.round(correct/tries*100):0,
+    isBest:isBest,best:E.getBestTime(course.id),
+    mode:isPc()?'pc':'mobile'
+  });
+  location.replace('result.html');
+}
 function departMiss(){
   late++;combo=0;
   var old=frontDep;
@@ -154,6 +210,7 @@ function departMiss(){
   renderBoard();
 }
 function tick(){
+  if(TA){if(state==='play'){updateHud();updateHint()}return}
   var now=clock();
   while(state==='play'&&frontDep<=now)departMiss();
   if(state!=='play')return;
@@ -181,6 +238,18 @@ function input(k,btn){
   correct++;combo++;if(combo>maxCombo)maxCombo=combo;
   score+=Math.round(10*mult());
   if(pc&&el)flash(el,'down',100);
+  if(r==='done'&&TA){
+    var arrived=queue[0];
+    boarded++;
+    if(boarded>=total){finishTA(clock());return}
+    queue.shift();
+    fill();
+    event(arrived.k+' 到着','ok');
+    flash(board,'arrive',320);
+    updateHud();
+    renderBoard();
+    return;
+  }
   if(r==='done'){
     var left=Math.max(0,frontDep-clock()),bonus=50+Math.ceil(left/1000)*10;
     score+=bonus;boarded++;

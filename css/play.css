@@ -22,3 +22,8 @@
 @media (prefers-reduced-motion:reduce){
   .board.miss,.board.arrive,.board.urgent .front .tm{animation:none}
 }
+
+/* タイムアタック: 時間・乗車数・ミスを表示 */
+.course{margin:0;font-size:16px;letter-spacing:.06em;color:var(--blue)}
+.hud.ta{grid-template-columns:1.5fr 1.2fr .8fr}
+.hud.ta .val{font-size:28px}

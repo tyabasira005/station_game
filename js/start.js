@@ -13,7 +13,27 @@ function showBest(){
   document.getElementById('bestLine').innerHTML=b?'この路線の自己ベスト <b>'+E.fmt(b)+'</b> 点':'この路線はまだ記録がありません';
 }
 
-E.initMode(showBest);
+/* タイムアタックのコース一覧。data.js の COURSES から作る */
+function buildCourses(){
+  COURSES.forEach(function(c){
+    var a=document.createElement('a');
+    a.className='seg tac';a.href='play.html?c='+c.id;a.dataset.course=c.id;
+    a.innerHTML='<span class="ty" data-t="'+c.ty+'">'+c.name+'</span>'+
+      '<small>'+(c.grp==='jr'?c.route:c.stops().length+'駅')+'</small>'+
+      '<small class="bt"></small>';
+    document.getElementById(c.grp==='jr'?'taJr':'taSk').appendChild(a);
+  });
+}
+function showTimes(){
+  Array.prototype.forEach.call(document.querySelectorAll('.tac'),function(a){
+    var t=E.getBestTime(a.dataset.course);
+    a.querySelector('.bt').textContent=t?E.fmtTime(t):'--';
+  });
+}
+
+E.initMode(function(){showBest();showTimes()});
+buildCourses();
+showTimes();
 segs.forEach(function(b){
   b.addEventListener('click',function(){E.setLine(b.dataset.line);showLine();showBest()});
 });

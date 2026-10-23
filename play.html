@@ -25,10 +25,11 @@
 
   <main class="stage">
     <section class="screen">
-      <div class="hud">
-        <div class="cell"><span class="lab">スコア</span><span class="val" id="scoreEl">0</span></div>
-        <div class="cell"><span class="lab">コンボ</span><span class="val"><span id="comboEl">0</span><span class="mult" id="multEl"></span></span></div>
-        <div class="cell"><span class="lab">乗り遅れ</span><span class="lives" id="lives" aria-label="乗り遅れ回数"><i></i><i></i><i></i></span></div>
+      <p class="course" id="courseEl" hidden></p>
+      <div class="hud" id="hud">
+        <div class="cell"><span class="lab" id="lab1">スコア</span><span class="val" id="scoreEl">0</span></div>
+        <div class="cell"><span class="lab" id="lab2">コンボ</span><span class="val"><span id="comboEl">0</span><span class="mult" id="multEl"></span></span></div>
+        <div class="cell"><span class="lab" id="lab3">乗り遅れ</span><span class="lives" id="lives" aria-label="乗り遅れ回数"><i></i><i></i><i></i></span><span class="val" id="missEl" hidden>0</span></div>
       </div>
       <div class="board" id="board">
         <div class="brow front" id="rowF">

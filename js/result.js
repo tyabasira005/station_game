@@ -16,16 +16,39 @@ function rank(n,mode){
   return ['各駅停車','ゆっくり確実に進みました。'];
 }
 
-var k=rank(r.boarded,r.mode);
-$('rRank').textContent=k[0];
-$('rSub').textContent=k[1]+' 運転時間は '+r.secs+' 秒でした。';
-$('rWords').textContent=r.boarded;
-$('rScore').textContent=E.fmt(r.score);
-$('rAcc').textContent=r.acc;
-$('rCombo').textContent=r.maxCombo;
-$('rBest').innerHTML=r.isBest&&r.score>0
-  ?'<b>この路線の自己ベストを更新しました</b>'
-  :'この路線の自己ベスト <b>'+E.fmt(r.best)+'</b> 点';
+var again='play.html'+(r.game==='ta'?'?c='+r.course:'');
+$('rAgain').setAttribute('href',again);
+
+if(r.game==='ta'){
+  /* タイムアタック: 大きくタイムを出し、1駅あたりの平均などを並べる */
+  var dts=document.querySelectorAll('.stat dt');
+  $('rEye').textContent='終点到着 '+r.label;
+  $('rRank').textContent=E.fmtTime(r.ms);
+  $('rSub').textContent=r.route+' を '+r.boarded+' 駅、完走しました。';
+  dts[0].textContent='乗車した駅';
+  dts[1].textContent='1駅あたり';
+  dts[2].textContent='正確さ';
+  dts[3].textContent='ミス';
+  $('rWords').textContent=r.boarded;
+  $('rScore').textContent=(r.ms/r.boarded/1000).toFixed(2)+'秒';
+  $('rAcc').textContent=r.acc;
+  $('rCombo').textContent=r.wrong+'回';
+  $('rBest').innerHTML=r.isBest
+    ?'<b>このコースの自己ベストを更新しました</b>'
+    :'このコースの自己ベスト <b>'+E.fmtTime(r.best)+'</b>';
+  $('rBack').textContent='コースを選びなおす';
+}else{
+  var k=rank(r.boarded,r.mode);
+  $('rRank').textContent=k[0];
+  $('rSub').textContent=k[1]+' 運転時間は '+r.secs+' 秒でした。';
+  $('rWords').textContent=r.boarded;
+  $('rScore').textContent=E.fmt(r.score);
+  $('rAcc').textContent=r.acc;
+  $('rCombo').textContent=r.maxCombo;
+  $('rBest').innerHTML=r.isBest&&r.score>0
+    ?'<b>この路線の自己ベストを更新しました</b>'
+    :'この路線の自己ベスト <b>'+E.fmt(r.best)+'</b> 点';
+}
 
 /* 結果を見ているうちにモードを切り替えたら、結果は古くなるのでスタートへ戻る */
 E.initMode(function(){location.href='index.html'});
@@ -33,6 +56,6 @@ E.initMode(function(){location.href='index.html'});
 document.addEventListener('keydown',function(e){
   if(e.ctrlKey||e.metaKey||e.altKey)return;
   var tag=document.activeElement?document.activeElement.tagName:'';
-  if((e.key==='Enter'||e.key===' ')&&tag!=='BUTTON'&&tag!=='A'){e.preventDefault();location.href='play.html'}
+  if((e.key==='Enter'||e.key===' ')&&tag!=='BUTTON'&&tag!=='A'){e.preventDefault();location.href=again}
 });
 })();

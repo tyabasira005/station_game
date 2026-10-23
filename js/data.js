@@ -21,3 +21,22 @@ var WORDS=JR.map(function(w){return [w[0],w[1],'jr']}).concat(SK.map(function(w)
 /* 新幹線の停車パターン（発車標の種別表示に使う） */
 var NOZOMI={'東京':1,'品川':1,'新横浜':1,'名古屋':1,'京都':1,'新大阪':1};
 var HIKARI={'小田原':1,'熱海':1,'三島':1,'静岡':1,'浜松':1,'豊橋':1,'岐阜羽島':1,'米原':1};
+
+/* タイムアタックのコース。全駅を並び順どおりに打って完走タイムを競う。
+   stops() は [駅名, 読み] の配列を返す。ひかりは のぞみ停車駅 + ひかり停車駅、こだまは全駅。 */
+var COURSES=[
+  {id:'up',grp:'jr',name:'上り',label:'東海道線 上り',route:'豊橋→熱海',ty:'普通',
+   stops:function(){return JR.slice()}},
+  {id:'down',grp:'jr',name:'下り',label:'東海道線 下り',route:'熱海→豊橋',ty:'普通',
+   stops:function(){return JR.slice().reverse()}},
+  {id:'nozomi',grp:'sk',name:'のぞみ',label:'新幹線 のぞみ',route:'東京→新大阪',ty:'のぞみ',
+   stops:function(){return SK.filter(function(w){return NOZOMI[w[0]]})}},
+  {id:'hikari',grp:'sk',name:'ひかり',label:'新幹線 ひかり',route:'東京→新大阪',ty:'ひかり',
+   stops:function(){return SK.filter(function(w){return NOZOMI[w[0]]||HIKARI[w[0]]})}},
+  {id:'kodama',grp:'sk',name:'こだま',label:'新幹線 こだま',route:'東京→新大阪',ty:'こだま',
+   stops:function(){return SK.slice()}}
+];
+function findCourse(id){
+  for(var i=0;i<COURSES.length;i++)if(COURSES[i].id===id)return COURSES[i];
+  return null;
+}

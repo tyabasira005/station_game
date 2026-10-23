@@ -42,6 +42,15 @@
       <p class="best" id="bestLine"></p>
       <a class="btn" href="play.html">出発する</a>
       <p class="kbd-hint pc-only">Enter キーでも開始できます。Esc キーで中断します。</p>
+
+      <fieldset class="picker ta">
+        <legend>タイムアタック</legend>
+        <p class="note">全駅を順番に打って、完走タイムを競います。数字は自己ベストです。</p>
+        <p class="grp">東海道線</p>
+        <div class="segs two" id="taJr" role="group" aria-label="東海道線のタイムアタック"></div>
+        <p class="grp">東海道新幹線　東京→新大阪</p>
+        <div class="segs three" id="taSk" role="group" aria-label="東海道新幹線のタイムアタック"></div>
+      </fieldset>
       <div class="board" aria-label="発車標の表示例">
         <div class="brow front">
           <div class="meta"><span class="ty" data-t="普通">普通</span><span class="sig" data-s="g"><i class="r"></i><i class="y"></i><i class="g"></i></span><span class="tm">8秒発</span></div>
@@ -56,6 +65,7 @@
     </section>
   </main>
 </div>
+<script src="js/data.js"></script>
 <script src="js/common.js"></script>
 <script src="js/start.js"></script>
 </body>

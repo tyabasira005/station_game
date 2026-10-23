@@ -14,3 +14,12 @@
 .seg[aria-pressed="true"]{background:var(--blue);color:#fff;box-shadow:inset 3px 3px 0 var(--blue-hi),inset -3px -3px 0 var(--blue-deep),3px 3px 0 var(--ink)}
 .seg[aria-pressed="true"] small{color:#d6e6fa}
 .seg:active{transform:translate(3px,3px);box-shadow:none}
+
+/* タイムアタックのコース選択 */
+.ta{margin-top:4px}
+.ta .note{margin:0 0 4px;font-size:14px;line-height:1.6;color:var(--ink-soft)}
+.ta .grp{margin:10px 0 6px;font-size:14px;color:var(--ink-soft)}
+.segs.two{grid-template-columns:1fr 1fr}
+.segs.three{grid-template-columns:1fr 1fr 1fr}
+a.seg{box-sizing:border-box;text-decoration:none}
+.tac .bt{font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums}
